@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <title>alphabet experiments es6</title>
+    <meta name="description" content="js fun times">
+    <meta name="author" content="Tim">
+
+    <style>
+        body {
+            background-color: #666;
+            color: white;
+            font-family: Optimist, Calibri;
+
+        }
+        .king {
+            display: block;
+            position: fixed;
+            top: 0px;
+            left:0px;
+            width: 100%;
+            height: 100%;
+
+        }
+        .race {
+            display: block;
+            position: absolute;
+            width: 40%;
+            top: 20%;
+            text-align: center;
+            font-size: 1.5em;
+            border: 1px solid white;
+            border-radius: 15px;
+            padding: 10px;
+            left: 50%;
+            color: white;
+            transform: translate(-50%, 0);
+            background: none;
+            filter: blur(1px);
+        }
+        .race:hover {
+            filter: blur(0);
+        }
+        .alphabet {
+            display: block;
+            position: relative;
+            width: 100%;
+            top: 50%;
+            text-align: center;
+            font-size: 3em;
+        }
+        .alphabet span {
+            display: inline-block;
+            margin-right: 0.25em;
+            padding: 0;
+            filter: blur(2px);
+            transition: transform 0.4s, color 0.4s;
+        }
+        .alphabet span:hover, .alphabet span.key-pressed {
+            color: white !important;
+            filter: blur(0);
+            transform: translate(0,-20px) rotate(-20deg) scale(2);
+        }
+        .alphabet span.next-key {
+            /* text-shadow:  4px 4px 2px white; */
+            text-decoration: underline;
+        }
+        .alphabet span.race-pressed {
+            font-size: 100vh;
+            opacity: 0;
+            transition: font-size 0.4s, opacity 0.4s;
+        }
+
+    </style>
+
+    <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+
+<script>
+
+
+    // page variables
+    var curLetter = 0;
+    var penaltyCounter = 0;
+    const startRace = "start the alpha-race";
+    const stopRace = "stop racing";
+
+    const king = document.createElement('div');
+    king.className = 'king';
+    document.body.appendChild(king);
+
+    const race = document.createElement('button');
+    race.className = 'race';
+    race.innerHTML = startRace;
+    king.appendChild(race);
+
+    var alphabet = document.createElement('div');
+    alphabet.className = 'alphabet';
+    king.appendChild(alphabet);
+
+    //functions
+    function generateSpans(parent, word) {
+        const wordSpans = [];
+        [...word].map((letter, i, arr) => {
+            let curSpan = document.createElement('span');
+            curSpan.className = `letter-${letter}`;
+            curSpan.innerHTML = letter;
+            curSpan.style.color = `hsl(${360/arr.length*i},100%,75%)`;
+            wordSpans.push(curSpan);
+            parent.appendChild(curSpan);
+        });
+        return wordSpans;
+    }
+
+    function showKeyPressed(letterMatch, classToAdd='key-pressed') {
+        if (letterMatch!==undefined) {
+            letterMatch.classList.add(classToAdd);
+            setTimeout(() => {
+                letterMatch.classList.remove(classToAdd);
+            },400)
+        }
+    }
+
+    function showNextKey(nextLetter) {
+        // remove any current highlights
+        Array.from(document.querySelectorAll('.next-key')).forEach((highlight) => highlight.classList.remove('next-key'));
+
+        // if it exists then highlight the next key required
+        if (nextLetter!==null) {
+            nextLetter.classList.add('next-key');
+        }
+    }
+
+    function normalKeyPress(e) {
+        let curKey = e.key.toLowerCase();
+        const letterMatch = alphaSpans.find(letter => {
+                    if(letter.textContent === curKey) {
+                return true;
+            }
+            return false;
+        });
+        showKeyPressed(letterMatch);
+    }
+
+    function raceKeyPress(e) {
+        let curKey = e.key.toLowerCase();
+        // check the correct key has been pressed
+        if (curKey === alphaSpans[curLetter].textContent) {
+            // log timestamp of keypress
+            if (curKey==='a') {
+                performance.mark("start race");
+            }
+
+            // show which letter was clicked
+            showKeyPressed(alphaSpans[curLetter]);
+
+            // highlight the next key
+            showNextKey(alphaSpans[curLetter].nextSibling);
+
+            // if key is 'z' then stop race timer, stop game and show results
+            if (curKey==='z') {
+                performance.clearMarks("finish race");
+                performance.mark("finish race");
+                performance.measure("completeRace", "start race", "finish race");
+                console.log(`Time taken to complete the alphabet race: ${performance.getEntriesByName("completeRace", "measure")[0].duration/1000}secs`);
+                console.log(`Number of penalties: ${penaltyCounter}`);
+                //console.log(`A to Z took you ${raceTime/1000}secs`);
+            } else {
+                // increment the current key
+                curLetter++;
+            }
+        }
+        else {
+            // log incorrect key press
+            penaltyCounter++;
+        }
+    }
+
+
+
+
+    const alphaSpans = generateSpans(alphabet,"abcdefghijklmnopqrstuvwxyz");
+
+    //event listeners
+    document.addEventListener("DOMContentLoaded", function(e) {
+        // load initial behaviour
+
+    });
+
+    document.addEventListener('keypress', normalKeyPress);
+
+    race.addEventListener('click', function(e) {
+        //reset everything ready for a race
+        curLetter = 0;
+        penaltyCounter = 0;
+        performance.clearMarks("start race");
+
+        // highlight the current key
+        alphaSpans[curLetter].classList.add('next-key');
+
+        // remove key press event listeners
+        document.removeEventListener('keypress', normalKeyPress);
+
+        // add the keypress event listeners
+        document.addEventListener('keypress', raceKeyPress);
+
+        // toggle button text
+        (e.srcElement.innerHTML===startRace) ? e.srcElement.innerHTML = stopRace : e.srcElement.innerHTML = startRace;
+
+
+
+    });
+
+    // time how long it takes for a user to type the alphabet
+    // allow incorrect key press but letters must be in correct order
+    // start time on key 'a' being pressed
+    // enter race mode once a button has been clicked
+
+
+
+</script>
+</body>
+</html>
